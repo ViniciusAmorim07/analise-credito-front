@@ -62,7 +62,7 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
           var fileName = file.name;
 
           try {
-            var uri = Uri.parse('http://127.0.0.1:8000/analisar-pdf/');
+            var uri = Uri.parse('https://analise-credito-67vk.onrender.com/analisar-pdf/');
             var request = http.MultipartRequest('POST', uri);
 
             request.files.add(http.MultipartFile.fromBytes(
@@ -186,14 +186,79 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
     );
   }
 
-  Widget _linhaDetalhe(String label, String valor) {
+  Widget _construirCardDetetive() {
+    bool aprovado = _resultado!['status'] == 'APROVADO';
+    Color corStatus = aprovado ? Colors.green.shade700 : Colors.red.shade700;
+    var detalhes = _resultado!['detalhes'];
+    bool temCriminal = detalhes['tem_processo_criminal'].toString().contains('SIM');
+
+    // Transforma a lista de tipos de processos em uma string legível
+    String tiposListados = (detalhes['tipos_processos'] as List).join(', ');
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 500,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Status Final em destaque
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: corStatus.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: corStatus, width: 1.5),
+              ),
+              child: Text(
+                _resultado!['status'],
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: corStatus),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _resultado!['tipo_relatorio'],
+              style: const TextStyle(fontSize: 13, color: Colors.orangeAccent),
+              textAlign: TextAlign.center,
+            ),
+            const Divider(height: 30),
+
+            // Respostas detalhadas para o seu chefe
+            _linhaDetalhe('1. Quantos Processos?', detalhes['qtd_processos'].toString()),
+            _linhaDetalhe('2. Tipos de Processos', tiposListados.isNotEmpty ? tiposListados : 'Nenhum'),
+            _linhaDetalhe('3. Ativo ou Passivo?', detalhes['polaridade_processual']),
+            _linhaDetalhe('4. Alienação Fiduciária (3 anos)', detalhes['alienacao_fiduciaria']),
+            _linhaDetalhe('5. Débitos de Aluguel (3 anos)', detalhes['debitos_aluguel']),
+            _linhaDetalhe(
+              '6. Processo Criminal?', 
+              detalhes['tem_processo_criminal'],
+              valorCor: temCriminal ? Colors.red.shade400 : Colors.green.shade400,
+            ),
+            _linhaDetalhe('7. Tempo do Processo Criminal', detalhes['tempo_processo_criminal']),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _linhaDetalhe(String label, String valor, {Color? valorCor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade700)),
-          Text(valor, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(flex: 2, child: Text(label, style: TextStyle(color: Colors.grey.shade400))),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 3,
+            child: Text(
+              valor, 
+              style: TextStyle(fontWeight: FontWeight.bold, color: valorCor ?? Colors.white),
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );
