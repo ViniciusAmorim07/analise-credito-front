@@ -58,7 +58,7 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
 
     try {
       // 2. Dispara o CPF para o seu backend em Python (Ajustaremos a URL amanhã)
-      var uri = Uri.parse('https://sua-api.onrender.com/analisar-cpf/');
+      var uri = Uri.parse('https://analise-credito-67vk.onrender.com');
       var response = await http.post(
         uri,
         headers: {"Content-Type": "application/json"},
