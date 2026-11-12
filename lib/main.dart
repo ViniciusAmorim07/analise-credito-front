@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:html' as html; // Usando a biblioteca nativa da Web!
 
 void main() {
   runApp(const AnalisadorApp());
@@ -13,10 +13,10 @@ class AnalisadorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Analisador de Crédito',
+      title: 'Analisador de Crédito - Loca SIM',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark, // Aplica o fundo escuro
+        brightness: Brightness.dark,
         colorSchemeSeed: Colors.orange,
         useMaterial3: true,
       ),
@@ -33,69 +33,55 @@ class TelaAnalisador extends StatefulWidget {
 }
 
 class _TelaAnalisadorState extends State<TelaAnalisador> {
+  final TextEditingController _cpfController = TextEditingController();
   bool _isLoading = false;
   Map<String, dynamic>? _resultado;
   String? _erro;
 
-  void _selecionarEEnviarArquivo() {
-    // 1. Cria um "botão invisível" de upload nativo do navegador
-    html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = '.pdf';
-    uploadInput.click();
+  Future<void> _consultarCPF() async {
+    // 1. Pega apenas os números digitados
+    String cpf = _cpfController.text.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // 2. Fica a escutar quando o utilizador escolher o ficheiro
-    uploadInput.onChange.listen((e) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
+    if (cpf.length != 11) {
+      setState(() {
+        _erro = 'Por favor, digite um CPF válido com apenas 11 números.';
+        _resultado = null;
+      });
+      return;
+    }
 
-        setState(() {
-          _isLoading = true;
-          _resultado = null;
-          _erro = null;
-        });
-
-        // 3. Lê o ficheiro e envia para a API quando terminar
-        reader.onLoadEnd.listen((e) async {
-          var fileBytes = reader.result as List<int>;
-          var fileName = file.name;
-
-          try {
-            var uri = Uri.parse('https://analise-credito-67vk.onrender.com/analisar-pdf/');
-            var request = http.MultipartRequest('POST', uri);
-
-            request.files.add(http.MultipartFile.fromBytes(
-              'file',
-              fileBytes,
-              filename: fileName,
-            ));
-
-            var response = await request.send();
-            var responseData = await response.stream.bytesToString();
-
-            if (response.statusCode == 200) {
-              setState(() {
-                _resultado = jsonDecode(responseData);
-                _isLoading = false;
-              });
-            } else {
-              setState(() {
-                _erro = 'Erro no servidor: ${response.statusCode}';
-                _isLoading = false;
-              });
-            }
-          } catch (e) {
-            setState(() {
-              _erro = 'Erro de conexão: Não foi possível aceder à API. Verifique se o Python está a correr.';
-              _isLoading = false;
-            });
-          }
-        });
-
-        reader.readAsArrayBuffer(file);
-      }
+    setState(() {
+      _isLoading = true;
+      _erro = null;
+      _resultado = null;
     });
+
+    try {
+      // 2. Dispara o CPF para o seu backend em Python (Ajustaremos a URL amanhã)
+      var uri = Uri.parse('https://sua-api.onrender.com/analisar-cpf/');
+      var response = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"cpf": cpf}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _resultado = jsonDecode(response.body);
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _erro = 'Erro no servidor: ${response.statusCode} - ${response.body}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _erro = 'Erro de conexão: Verifique se a API está online.';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -103,40 +89,89 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
     return Scaffold(
       appBar: AppBar(
         title: Image.asset('assets/logo.png', height: 50),
-        backgroundColor: const Color.fromARGB(255, 252, 252, 252), 
+        backgroundColor: Colors.white,
         centerTitle: true,
       ),
       body: Center(
-        child: SingleChildScrollView( 
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.analytics_outlined, size: 80, color: Colors.blueGrey),
+                const Icon(Icons.person_search_outlined, size: 80, color: Colors.orangeAccent),
                 const SizedBox(height: 20),
                 const Text(
-                  'Envie o PDF da Serasa Experian para avaliar o cliente',
-                  style: TextStyle(fontSize: 18),
+                  'Consulta Automática de Cliente',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 8),
+                Text(
+                  'Análise de Crédito e Antecedentes Judiciais integrados.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
+                ),
+                const SizedBox(height: 40),
+                
+                // Novo Campo de Digitação de CPF
+                SizedBox(
+                  width: 350,
+                  child: TextField(
+                    controller: _cpfController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 11, // Trava em 11 digitos
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Só aceita números
+                    decoration: InputDecoration(
+                      labelText: 'CPF do Cliente (Apenas números)',
+                      prefixIcon: const Icon(Icons.badge, color: Colors.orange),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.orange, width: 2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      counterText: "", // Esconde o contador "0/11" para ficar mais limpo
+                    ),
+                    onSubmitted: (_) => _consultarCPF(), // Permite dar "Enter" no teclado para buscar
+                  ),
+                ),
+                const SizedBox(height: 25),
+
+                // Botão de Consultar
                 ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _selecionarEEnviarArquivo,
+                  onPressed: _isLoading ? null : _consultarCPF,
                   icon: _isLoading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.upload_file),
-                  label: Text(_isLoading ? 'A analisar...' : 'Fazer Upload do PDF'),
+                      : const Icon(Icons.search),
+                  label: Text(_isLoading ? 'Buscando dados...' : 'Consultar Cliente'),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                    textStyle: const TextStyle(fontSize: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(height: 40),
+                
                 if (_erro != null)
-                  Text(_erro!, style: const TextStyle(color: Colors.red, fontSize: 16)),
-                if (_resultado != null)
-                  _construirCardResultado(),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text(_erro!, style: TextStyle(color: Colors.red.shade400, fontSize: 16)),
+                  ),
+                  
+                if (_resultado != null) ...[
+                  _construirPainelConsolidado(),
+                  const SizedBox(height: 25),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _cpfController.clear();
+                        _resultado = null;
+                        _erro = null;
+                      });
+                    },
+                    icon: const Icon(Icons.refresh, color: Colors.orange),
+                    label: const Text('Fazer Nova Consulta', style: TextStyle(color: Colors.orange)),
+                  ),
+                ],
               ],
             ),
           ),
@@ -145,97 +180,105 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
     );
   }
 
-  Widget _construirCardResultado() {
-    bool aprovado = _resultado!['status'] == 'APROVADO';
-    Color corStatus = aprovado ? Colors.green.shade700 : Colors.red.shade700;
-    var detalhes = _resultado!['detalhes'];
+  // ============================================================================
+  // OS CARDS ABAIXO CONTINUAM EXATAMENTE IGUAIS (pois a API devolverá o mesmo formato)
+  // ============================================================================
 
+  Widget _construirPainelConsolidado() {
+    String statusGeral = _resultado!['status_geral'] ?? 'N/A';
+    bool aprovado = statusGeral == 'APROVADO';
+    Color corStatus = aprovado ? Colors.green.shade700 : Colors.red.shade700;
+
+    var resSerasa = _resultado!['serasa'];
+    var resDetetive = _resultado!['detetive'];
+
+    return Column(
+      children: [
+        Container(
+          width: 550,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: corStatus.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: corStatus, width: 2),
+          ),
+          child: Column(
+            children: [
+              const Text('PARECER FINAL DO CLIENTE', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 5),
+              Text(
+                statusGeral,
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: corStatus),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Wrap(
+          spacing: 20,
+          runSpacing: 20,
+          alignment: WrapAlignment.center,
+          children: [
+            if (resSerasa != null) _construirCardSerasa(resSerasa),
+            if (resDetetive != null) _construirCardDetetive(resDetetive),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _construirCardSerasa(Map<String, dynamic> serasa) {
+    var detalhes = serasa['detalhes'] ?? {};
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        width: 400,
+        width: 450,
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: corStatus.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _resultado!['status'],
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: corStatus),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Pontuação Total: ${_resultado!['pontuacao_total']}',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            const Divider(height: 30),
-            _linhaDetalhe('Score Serasa', detalhes['score'].toString()),
-            _linhaDetalhe('Atraso Aluguer', detalhes['teve_atraso_aluguel'] ? 'Sim' : 'Não'),
-            _linhaDetalhe('Dívida Nu Financeira', 'R\$ ${detalhes['divida_nu_financeira']}'),
-            _linhaDetalhe('Protestos', detalhes['qtd_protestos'].toString()),
-            _linhaDetalhe('Total Pendências', 'R\$ ${detalhes['total_pendencias']}'),
+            const Text('ANÁLISE FINANCEIRA (CRÉDITO)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+            const Divider(height: 25),
+            _linhaDetalhe('Status Financeiro', serasa['status'] ?? 'N/A'),
+            _linhaDetalhe('Pontuação Calculada', '${serasa['pontuacao_total'] ?? 0} pts'),
+            _linhaDetalhe('Score do Cliente', detalhes['score']?.toString() ?? 'N/A'),
+            _linhaDetalhe('Atraso de Aluguel', (detalhes['teve_atraso_aluguel'] ?? false) ? 'SIM (Risco)' : 'Não'),
+            _linhaDetalhe('Dívida Nu Financeira', 'R\$ ${detalhes['divida_nu_financeira'] ?? 0}'),
+            _linhaDetalhe('Qtd. Protestos', detalhes['qtd_protestos']?.toString() ?? '0'),
+            _linhaDetalhe('Total Pendências', 'R\$ ${detalhes['total_pendencias'] ?? 0}'),
           ],
         ),
       ),
     );
   }
 
-  Widget _construirCardDetetive() {
-    bool aprovado = _resultado!['status'] == 'APROVADO';
-    Color corStatus = aprovado ? Colors.green.shade700 : Colors.red.shade700;
-    var detalhes = _resultado!['detalhes'];
+  Widget _construirCardDetetive(Map<String, dynamic> detetive) {
+    var detalhes = detetive['detalhes'] ?? {};
     bool temCriminal = detalhes['tem_processo_criminal'].toString().contains('SIM');
-
-    // Transforma a lista de tipos de processos em uma string legível
-    String tiposListados = (detalhes['tipos_processos'] as List).join(', ');
+    var tiposList = detalhes['tipos_processos'];
+    String tiposListados = (tiposList is List) ? tiposList.join(', ') : tiposList.toString();
 
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        width: 500,
+        width: 450,
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Status Final em destaque
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: corStatus.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: corStatus, width: 1.5),
-              ),
-              child: Text(
-                _resultado!['status'],
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: corStatus),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _resultado!['tipo_relatorio'],
-              style: const TextStyle(fontSize: 13, color: Colors.orangeAccent),
-              textAlign: TextAlign.center,
-            ),
-            const Divider(height: 30),
-
-            // Respostas detalhadas para o seu chefe
-            _linhaDetalhe('1. Quantos Processos?', detalhes['qtd_processos'].toString()),
+            const Text('ANTECEDENTES & JUDICIAL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+            const Divider(height: 25),
+            _linhaDetalhe('1. Quantos Processos?', detalhes['qtd_processos']?.toString() ?? '0'),
             _linhaDetalhe('2. Tipos de Processos', tiposListados.isNotEmpty ? tiposListados : 'Nenhum'),
-            _linhaDetalhe('3. Ativo ou Passivo?', detalhes['polaridade_processual']),
-            _linhaDetalhe('4. Alienação Fiduciária (3 anos)', detalhes['alienacao_fiduciaria']),
-            _linhaDetalhe('5. Débitos de Aluguel (3 anos)', detalhes['debitos_aluguel']),
+            _linhaDetalhe('3. Ativo ou Passivo?', detalhes['polaridade_processual'] ?? 'N/A'),
+            _linhaDetalhe('4. Alienação Fiduciária', detalhes['alienacao_fiduciaria'] ?? 'Não'),
+            _linhaDetalhe('5. Débitos de Aluguel', detalhes['debitos_aluguel'] ?? 'Não'),
             _linhaDetalhe(
               '6. Processo Criminal?', 
-              detalhes['tem_processo_criminal'],
+              detalhes['tem_processo_criminal'] ?? 'Não',
               valorCor: temCriminal ? Colors.red.shade400 : Colors.green.shade400,
             ),
-            _linhaDetalhe('7. Tempo do Processo Criminal', detalhes['tempo_processo_criminal']),
+            _linhaDetalhe('7. Tempo Processo Criminal', detalhes['tempo_processo_criminal'] ?? 'N/A'),
           ],
         ),
       ),
@@ -244,18 +287,16 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
 
   Widget _linhaDetalhe(String label, String valor, {Color? valorCor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 2, child: Text(label, style: TextStyle(color: Colors.grey.shade400))),
-          const SizedBox(width: 10),
+          Expanded(flex: 2, child: Text(label, style: TextStyle(color: Colors.grey.shade400, fontSize: 13))),
           Expanded(
             flex: 3,
             child: Text(
               valor, 
-              style: TextStyle(fontWeight: FontWeight.bold, color: valorCor ?? Colors.white),
+              style: TextStyle(fontWeight: FontWeight.bold, color: valorCor ?? Colors.white, fontSize: 13),
               textAlign: TextAlign.right,
             ),
           ),
