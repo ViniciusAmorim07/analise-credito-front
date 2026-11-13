@@ -66,10 +66,20 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
       );
 
       if (response.statusCode == 200) {
-        setState(() {
-          _resultado = jsonDecode(response.body);
-          _isLoading = false;
-        });
+        var jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse.containsKey('erro')) {
+          setState(() {
+            _erro = jsonResponse['erro'];
+            _resultado = null;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _resultado = jsonResponse;
+            _isLoading = false;
+          });
+        }
       } else {
         setState(() {
           _erro = 'Erro no servidor: ${response.statusCode} - ${response.body}';
