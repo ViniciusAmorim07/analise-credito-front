@@ -570,7 +570,14 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
             _linhaDetalhe('Status Financeiro', serasa['status'] ?? 'N/A'),
             _linhaDetalhe('Pontuação Calculada', '${serasa['pontuacao_total'] ?? 0} pts'),
             _linhaDetalhe('Score do Cliente', detalhes['score']?.toString() ?? 'N/A'),
-            _linhaDetalhe('Atraso de Aluguel', (detalhes['teve_atraso_aluguel'] ?? false) ? 'SIM (Risco)' : 'Não'),
+            _linhaDetalhe('Atraso de Aluguel',
+              financeiro['atraso_aluguel'] ?? 'Não',
+              valorCor: (financeiro['atraso_aluguel'] ?? 'Não') != 'Não'
+                  ? ((financeiro['atraso_aluguel'] ?? '').toString().contains('|')
+                      ? Colors.red.shade400
+                      : Colors.amber)
+                  : null,
+           ),
             _linhaDetalhe('Dívida Nu Financeira', 'R\$ ${detalhes['divida_nu_financeira'] ?? 0}'),
             _linhaDetalhe('Qtd. Protestos', detalhes['qtd_protestos']?.toString() ?? '0'),
             _linhaDetalhe('Total Pendências', 'R\$ ${detalhes['total_pendencias'] ?? 0}'),
