@@ -1,19 +1,17 @@
 # frontend
 
-# 🛡️ Sistema de Análise de Crédito e Risco Judicial
+A new Flutter project.
 
-Plataforma Full-Stack de análise financeira e antecendentes jurídicos. O sistema contém uma página de login com cadastro de usuario e administrador, sistema com a consulta automática via API com o site Relinq, restrição de
-consulta de 60 dias, logs de consulta por usuario. 
+## Getting Started
 
-## 🎯 O Problema Resolvido
-Muitos clientes devedores, fizemos uma análise com os dados dos devedores e criamos filtros baseados em notas.
+This project is a starting point for a Flutter application.
 
-Este sistema centraliza a operação em uma interface web responsiva que consulta dados cadastrais, financeiros e judiciais em tempo real, aplicando automaticamente a política de risco da empresa em poucos segundos.
+A few resources to get you started if this is your first Flutter project:
 
----
-## 🏗️ Arquitetura e Tecnologias
+- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
+- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
 
-* **Frontend:** Flutter Web (Dart) — hospedado na **Vercel**
-* **Backend:** Python + FastAPI (requisições assíncronas com `httpx`) — hospedado no **Render**
-* **Banco de Dados & Logs:** PostgreSQL via **Supabase**
-* **Integração Externa:** API REST de dados cadastrais, birô de crédito e processos judiciais
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.

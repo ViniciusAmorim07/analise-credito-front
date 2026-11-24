@@ -613,7 +613,13 @@ class _TelaAnalisadorState extends State<TelaAnalisador> {
             _linhaDetalhe('1. Quantos Processos?', detalhes['qtd_processos']?.toString() ?? '0'),
             _linhaDetalhe('2. Tipos de Processos', tiposListados.isNotEmpty ? tiposListados : 'Nenhum'),
             _linhaDetalhe('3. Ativo ou Passivo?', detalhes['polaridade_processual'] ?? 'N/A'),
-            _linhaDetalhe('4. Alienação Fiduciária', detalhes['alienacao_fiduciaria'] ?? 'Não'),
+            _linhaDetalhe(
+              '4. Alienação Fiduciária',
+              detalhes['alienacao_fiduciaria'] ?? 'Não',
+              valorCor: (detalhes['alienacao_fiduciaria'] ?? '').toString().startsWith('Sim')
+                  ? Colors.amber
+                  : null,
+            ),
             _linhaDetalhe('5. Débitos de Aluguel', detalhes['debitos_aluguel'] ?? 'Não'),
             _linhaDetalhe(
               '6. Processo Criminal?',
